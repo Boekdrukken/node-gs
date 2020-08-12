@@ -80,7 +80,7 @@ function gs() {
             var self = this;
             if (!this._input) return cb.call(self, 'No input specified');
 
-            console.log('gs command: ' + this.options.concat([this._input]));
+            // console.log('gs command: ' + this.options.concat([this._input]));
 
             if (this.excPath) {
                 var proc = spawn(this.excPath, this.options.concat([this._input]));
