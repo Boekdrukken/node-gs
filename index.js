@@ -83,8 +83,16 @@ class GS {
     return this.define('GraphicsAlphaBits', bits);
   }
 
+  alphaBits(bits=4) {
+    return this.textAlphaBits(bits).graphicsAlphaBits(bits);
+  }
+
   interpolate() {
     return this.define('DOINTERPOLATE');
+  }
+
+  resolution(resolution=300) {
+    return this.option(`-r${resolution}`);
   }
 
   device(value) {
