@@ -1,12 +1,16 @@
 const { spawn } = require('child_process');
 
 const concat = arg => Buffer.concat(arg).toString();
+const linux = require('./binaries/linux');
 
 class GS {
 
   constructor() {
     this._options = [];
     this._execPath = 'gs';
+    if(process.platform === 'linux') {
+      this._execPath = linux;
+    }
     this._input = null;
   }
 
