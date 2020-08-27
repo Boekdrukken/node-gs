@@ -2,7 +2,6 @@ let gs = require('./index');
 
 (async () => {
 
-
   let result = await gs()
     .batch()
     .nopause()
