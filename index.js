@@ -1,112 +1,147 @@
-var spawn = require('child_process').spawn;
+const { spawn } = require('child_process');
 
-function gs() {
-    return {
-        "options":        [],
-        "_input":         null,
-        "excPath":        '',
-        "option":         function (option) {
-            this.options.push(option);
-            return this;
-        },
-        "executablePath": function (path) {
-            this.excPath = path;
-            return this;
-        },
-        "batch":          function () {
-            this.options.push('-dBATCH');
-            return this;
-        },
-        "diskfonts":      function () {
-            this.options.push('-dDISKFONTS');
-            return this;
-        },
-        "nobind":         function () {
-            this.options.push('-dNOBIND');
-            return this;
-        },
-        "nocache":        function () {
-            this.options.push('-dNOCACHE');
-            return this;
-        },
-        "nodisplay":      function () {
-            this.options.push('-dNODISPLAY');
-            return this;
-        },
-        "nopause":        function () {
-            this.options.push('-dNOPAUSE');
-            return this;
-        },
-        "define":         function (key, val) {
-            this.options.push('-d' + key + (val ? '=' + val : ''));
-            return this;
-        },
-        "device":         function (dev) {
-            dev = dev || 'txtwrite';
-            this.options.push('-sDEVICE=' + dev);
-            return this;
-        },
-        "input":          function (file) {
-            this._input = file;
-            return this;
-        },
-        "output":         function (file) {
-            file = file || '-';
-            this.options.push('-sOutputFile=' + file);
-            if (file === '-') return this.q();
-            return this;
-        },
-        "q":              function () {
-            this.options.push('-q');
-            return this;
-        },
-        "p":              function () {
-            this.options.push('-p');
-            return this;
-        },
-        "papersize":      function (size) {
-            this.options.push('-sPAPERSIZE=' + size);
-            return this;
-        },
-        "res":            function (xres, yres) {
-            this.options.push('-r' + xres + (yres ? 'x' + yres : ''));
-            return this;
-        },
-        "safer":          function () {
-            this.options.push('-dSAFER');
-            return this;
-        },
-        "exec":           function (cb) {
-            var self = this;
-            if (!this._input) return cb.call(self, 'No input specified');
+const concat = arg => Buffer.concat(arg).toString();
 
-            // console.log('gs command: ' + this.options.concat([this._input]));
+class GS {
 
-            if (this.excPath) {
-                var proc = spawn(this.excPath, this.options.concat([this._input]));
-            } else {
-                var proc = spawn('gs', this.options.concat([this._input]));
-            }            
+  constructor() {
+    this._options = [];
+    this._execPath = 'gs';
+    this._input = null;
+  }
 
-            proc.stdin.on('error', cb);
-            proc.stdout.on('error', cb);
+  executablePath(execPath) {
+    this._execPath = execPath;
+    return this;
+  }
 
-            var _data      = [];
-            var totalBytes = 0;
-            proc.stdout.on('data', function (data) {
-                totalBytes += data.length;
-                _data.push(data);
-            });
-            proc.on('close', function () {
-                var buf = Buffer.concat(_data, totalBytes);
+  input(input) {
+    this._input = input;
+    return this;
+  }
 
-                return cb.call(self, null, buf.toString());
-            });
-            process.on('exit', function () {
-                proc.kill();
-            });
+  output(output) {
+    output = output || '-';
+    this.option(`-sOutputFile=${output}`);
+    if(output === '-') {
+      return this.q();
+    }
+    return this;
+  }
+
+  option(option) {
+    this._options.push(option);
+    return this;
+  }
+
+  define(key, value) {
+    let string = `${key}`;
+    if(value !== undefined) {
+      string = `${string}=${value}`;
+    }
+    return this.option(`-d${string}`);
+  }
+
+  batch() {
+    return this.define('BATCH');
+  }
+
+  nopause() {
+    return this.define('NOPAUSE');
+  }
+
+  diskfonts() {
+    return this.define('DISKFONTS');
+  }
+
+  nobind() {
+    return this.define('NOBIND');
+  }
+
+  nocache() {
+    return this.define('NOCACHE');
+  }
+
+  nodisplay() {
+    return this.define('NODISPLAY');
+  }
+
+  safer() {
+    return this.define('SAFER');
+  }
+
+  page(first, last) {
+    last = last || first;
+    return this.define('FirstPage', first).define('LastPage', last);
+  }
+
+  textAlphaBits(bits=4) {
+    return this.define('TextAlphaBits', bits);
+  }
+
+  graphicsAlphaBits(bits=4) {
+    return this.define('GraphicsAlphaBits', bits);
+  }
+
+  interpolate() {
+    return this.define('DOINTERPOLATE');
+  }
+
+  device(value) {
+    value = value || 'txtwrite';
+    return this.option(`-sDEVICE=${value}`);
+  }
+
+  q() {
+    return this.option('-q');
+  }
+
+  p() {
+    return this.option('-p');
+  }
+
+  papersize(value) {
+    return this.option(`-sPAPERSIZE=${value}`);
+  }
+
+  res(x, y) {
+    let value = `${x}`;
+    if(y) {
+      value = `${value}x${y}`;
+    }
+    return this.option(`-r${value}`);
+  }
+
+  exec() {
+    let args = [ ...this._options, this._input ];
+    let cmd = this._execPath;
+
+    return new Promise((resolve, reject) => {
+      let proc = spawn(cmd, args);
+
+      let stdout = [];
+      let stderr = [];
+
+      proc.stdout.on('data', data => stdout.push(data));
+      proc.stderr.on('data', data => stderr.push(data));
+
+      proc.on('close', code => {
+        let props = {
+          code,
+          cmd,
+          args,
+          stdout: concat(stdout),
+          stderr: concat(stderr)
+        };
+        if(code === 0) {
+          resolve(props);
+        } else {
+          reject(Object.assign(new Error(`Execution failed`), props));
         }
-    };
+      });
+    });
+  }
+
 }
 
-module.exports = exports = gs;
+module.exports = () => new GS();
