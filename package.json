@@ -1,7 +1,7 @@
 {
   "name": "gs",
   "description": "Provide access to ghostscript",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "author": "Nick Campbell <nicholas.j.campbell@gmail.com> (http://github.com/ncb000gt)",
   "bugs" : {
     "url" : "http://github.com/ncb000gt/node-gs/issues"
@@ -19,7 +19,7 @@
   "licenses": [
     {
       "type": "MIT",
-      "url": "http://www.opensource.org/licenses/mit-license.php" 
+      "url": "http://www.opensource.org/licenses/mit-license.php"
     }
   ],
   "contributors": [
